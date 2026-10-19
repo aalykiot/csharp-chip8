@@ -367,8 +367,8 @@ class Emulator
           var address = this._iRegister;
           var value = this.ReadRegister(register);
 
-          this._memory[address] = (byte)((value / 100) % 10);
-          this._memory[address + 1] = (byte)((value / 10) % 10);
+          this._memory[address] = (byte)(value / 100 % 10);
+          this._memory[address + 1] = (byte)(value / 10 % 10);
           this._memory[address + 2] = (byte)(value % 10);
 
           return new Next();
