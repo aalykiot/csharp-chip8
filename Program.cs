@@ -1,4 +1,6 @@
-﻿class Program
+﻿namespace Chip8;
+
+class Program
 {
     static void Main(string[] args)
     {
@@ -56,8 +58,6 @@ abstract record ProgramCounter;
 record Next : ProgramCounter;
 record Skip : ProgramCounter;
 record JumpTo(ushort Address) : ProgramCounter;
-
-record OpcodeDigits(byte A, byte B, byte C, byte D);
 
 class Emulator
 {
@@ -414,14 +414,13 @@ class Emulator
     private static Instruction OpcodeToInstruction(ushort opcode)
     {
         // Split the given opcode into seprate digits.
-        var digits = new OpcodeDigits(
-          (byte)(opcode >> 12),
-          (byte)(opcode >> 8 & 0x0F),
-          (byte)(opcode >> 4 & 0x00F),
-          (byte)(opcode & 0x000F)
+        var (d1, d2, d3, d4) = (
+            (byte)(opcode >> 12),
+            (byte)(opcode >> 8 & 0x0F),
+            (byte)(opcode >> 4 & 0x00F),
+            (byte)(opcode & 0x000F)
         );
 
-        var (d1, d2, d3, d4) = digits;
         var address = (ushort)(opcode & 0x0FFF);
         var value = (byte)(opcode & 0x00FF);
 
