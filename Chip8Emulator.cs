@@ -68,7 +68,7 @@ class Chip8Emulator
   ];
 
     private static readonly System.Random _random = new();
-    private readonly Display _display = new();
+    public readonly Display Display = new();
 
     private ushort _programCounter = ProgramMemoryOffset;
     private ushort _iRegister = 0;
@@ -138,7 +138,7 @@ class Chip8Emulator
         {
             case ClearDisplay:
                 {
-                    _display.Clear();
+                    Display.Clear();
                     return new Next();
                 }
 
@@ -304,7 +304,7 @@ class Chip8Emulator
                     var sprite = _memory[_iRegister..(_iRegister + offset)];
                     var x = (int)ReadRegister(registerX);
                     var y = (int)ReadRegister(registerY);
-                    var collision = _display.Draw(x, y, sprite);
+                    var collision = Display.Draw(x, y, sprite);
 
                     LoadRegister(0xF, collision ? (byte)1 : (byte)0);
                     return new Next();
