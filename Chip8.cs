@@ -100,8 +100,8 @@ class Emulator
   {
     // Load built-in fonts and the program into the emulator's memory (this 
     // can fail for some many reason but I'll ignore it for now).
-    FontMap.CopyTo(this._memory, 0);
-    program.CopyTo(this._memory, ProgramMemoryOffset);
+    FontMap.CopyTo(_memory, 0);
+    program.CopyTo(_memory, ProgramMemoryOffset);
   }
 
   public void PerformCpuCycle(double delta)
@@ -112,31 +112,31 @@ class Emulator
     foreach (int _ in Enumerable.Range(0, numOfInstructions))
     {
       // Block execution until a key is pressed.
-      if (this._keyboardWaitKey.HasValue)
+      if (_keyboardWaitKey.HasValue)
       {
         return;
       }
 
-      var pc = this._programCounter;
-      var opcode = (ushort)(this._memory[pc] << 8 | this._memory[pc + 1]);
+      var pc = _programCounter;
+      var opcode = (ushort)(_memory[pc] << 8 | _memory[pc + 1]);
 
       var instrcution = OpcodeToInstruction(opcode);
-      var next = this.RunInstruction(instrcution);
+      var next = RunInstruction(instrcution);
 
       Console.WriteLine($"DEBUG: {instrcution}");
 
       switch (next)
       {
         case Next:
-          this._programCounter += 2;
+          _programCounter += 2;
           break;
 
         case Skip:
-          this._programCounter += 4;
+          _programCounter += 4;
           break;
 
         case JumpTo(var address):
-          this._programCounter = address;
+          _programCounter = address;
           break;
       }
     }
@@ -149,14 +149,14 @@ class Emulator
     {
       case ClearDisplay:
         {
-          this._display.Clear();
+          _display.Clear();
           return new Next();
         }
 
       case Return:
         {
-          this._stackPointer -= 1;
-          var address = this._stack[this._stackPointer];
+          _stackPointer -= 1;
+          var address = _stack[_stackPointer];
           return new JumpTo(address);
         }
 
@@ -167,29 +167,29 @@ class Emulator
 
       case Call(var address):
         {
-          this._stack[this._stackPointer] = (ushort)(this._programCounter + 2);
-          this._stackPointer += 1;
+          _stack[_stackPointer] = (ushort)(_programCounter + 2);
+          _stackPointer += 1;
           return new JumpTo(address);
         }
 
       case SkipIfEqualsByte(var register, var value):
         {
-          return this.ReadRegister(register) == value ? new Skip() : new Next();
+          return ReadRegister(register) == value ? new Skip() : new Next();
         }
 
       case SkipIfNotEqualsByte(var register, var value):
         {
-          return this.ReadRegister(register) != value ? new Skip() : new Next();
+          return ReadRegister(register) != value ? new Skip() : new Next();
         }
 
       case SkipIfEqual(var registerX, var registerY):
         {
-          return this.ReadRegister(registerX) == this.ReadRegister(registerY) ? new Skip() : new Next();
+          return ReadRegister(registerX) == ReadRegister(registerY) ? new Skip() : new Next();
         }
 
       case LoadByte(var register, var value):
         {
-          this.LoadRegister(register, value);
+          LoadRegister(register, value);
           return new Next();
         }
 
@@ -198,44 +198,44 @@ class Emulator
           // From my understanding "unchecked" will perform the addition and 
           // not throw an exception if there is an overflow instead, the
           // result wraps around.
-          var safeValue = unchecked(this.ReadRegister(register) + value);
-          this.LoadRegister(register, (byte)safeValue);
+          var safeValue = unchecked(ReadRegister(register) + value);
+          LoadRegister(register, (byte)safeValue);
           return new Next();
         }
 
       case Move(var registerX, var registerY):
         {
-          var value = this.ReadRegister(registerY);
-          this.LoadRegister(registerX, value);
+          var value = ReadRegister(registerY);
+          LoadRegister(registerX, value);
           return new Next();
         }
 
       case Or(var registerX, var registerY):
         {
-          var value = this.ReadRegister(registerX) | this.ReadRegister(registerY);
-          this.LoadRegister(registerX, (byte)value);
+          var value = ReadRegister(registerX) | ReadRegister(registerY);
+          LoadRegister(registerX, (byte)value);
           return new Next();
         }
 
       case And(var registerX, var registerY):
         {
-          var value = this.ReadRegister(registerX) & this.ReadRegister(registerY);
-          this.LoadRegister(registerX, (byte)value);
+          var value = ReadRegister(registerX) & ReadRegister(registerY);
+          LoadRegister(registerX, (byte)value);
           return new Next();
         }
 
       case Xor(var registerX, var registerY):
         {
-          var value = this.ReadRegister(registerX) ^ this.ReadRegister(registerY);
-          this.LoadRegister(registerX, (byte)value);
+          var value = ReadRegister(registerX) ^ ReadRegister(registerY);
+          LoadRegister(registerX, (byte)value);
           return new Next();
         }
 
       case Add(var registerX, var registerY):
         {
-          var value = (ushort)this.ReadRegister(registerX) + (ushort)this.ReadRegister(registerY);
-          this.LoadRegister(0xF, value > 255 ? (byte)1 : (byte)0);
-          this.LoadRegister(registerX, (byte)value);
+          var value = ReadRegister(registerX) + ReadRegister(registerY);
+          LoadRegister(0xF, value > 255 ? (byte)1 : (byte)0);
+          LoadRegister(registerX, (byte)value);
 
           return new Next();
         }
@@ -245,20 +245,20 @@ class Emulator
           // From my understanding "unchecked" will perform the substitution
           // andd not throw an exception if there is an overflow instead,
           // the result wraps around.
-          var value = unchecked(this.ReadRegister(registerX) - this.ReadRegister(registerY));
-          var difference = this.ReadRegister(registerX) > this.ReadRegister(registerY);
+          var value = unchecked(ReadRegister(registerX) - ReadRegister(registerY));
+          var difference = ReadRegister(registerX) > ReadRegister(registerY);
 
-          this.LoadRegister(0xF, difference ? (byte)1 : (byte)0);
-          this.LoadRegister(registerX, (byte)value);
+          LoadRegister(0xF, difference ? (byte)1 : (byte)0);
+          LoadRegister(registerX, (byte)value);
 
           return new Next();
         }
 
       case ShiftRight(var register):
         {
-          var value = this.ReadRegister(register) >> 1;
-          this.LoadRegister(0xF, (byte)(this.ReadRegister(register) & 0b1));
-          this.LoadRegister(register, (byte)value);
+          var value = ReadRegister(register) >> 1;
+          LoadRegister(0xF, (byte)(ReadRegister(register) & 0b1));
+          LoadRegister(register, (byte)value);
 
           return new Next();
         }
@@ -268,108 +268,108 @@ class Emulator
           // From my understanding "unchecked" will perform the substitution
           // andd not throw an exception if there is an overflow instead,
           // the result wraps around.
-          var value = unchecked(this.ReadRegister(registerY) - this.ReadRegister(registerX));
-          var difference = this.ReadRegister(registerY) > this.ReadRegister(registerX);
+          var value = unchecked(ReadRegister(registerY) - ReadRegister(registerX));
+          var difference = ReadRegister(registerY) > ReadRegister(registerX);
 
-          this.LoadRegister(0xF, difference ? (byte)1 : (byte)0);
-          this.LoadRegister(registerX, (byte)value);
+          LoadRegister(0xF, difference ? (byte)1 : (byte)0);
+          LoadRegister(registerX, (byte)value);
 
           return new Next();
         }
 
       case ShiftLeft(var register):
         {
-          var value = this.ReadRegister(register) << 1;
-          this.LoadRegister(0xF, (byte)(this.ReadRegister(register) >> 7));
-          this.LoadRegister(register, (byte)value);
+          var value = ReadRegister(register) << 1;
+          LoadRegister(0xF, (byte)(ReadRegister(register) >> 7));
+          LoadRegister(register, (byte)value);
 
           return new Next();
         }
 
       case SkipIfNotEqual(var registerX, var registerY):
         {
-          return this.ReadRegister(registerX) != this.ReadRegister(registerY) ? new Skip() : new Next();
+          return ReadRegister(registerX) != ReadRegister(registerY) ? new Skip() : new Next();
         }
 
       case LoadI(var value):
         {
-          this._iRegister = value;
+          _iRegister = value;
           return new Next();
         }
 
       case JumpPlusZero(var address):
         {
-          var addr = address + (ushort)this.ReadRegister(0);
+          var addr = address + ReadRegister(0);
           return new JumpTo((ushort)addr);
         }
 
       case Random(var register, var value):
         {
           var randomNum = (byte)_random.Next(0, 255);
-          this.LoadRegister(register, (byte)(randomNum & value));
+          LoadRegister(register, (byte)(randomNum & value));
           return new Next();
         }
 
       case Draw(var registerX, var registerY, var offset):
         {
-          var sprite = this._memory[this._iRegister..(this._iRegister + offset)];
-          var x = (int)this.ReadRegister(registerX);
-          var y = (int)this.ReadRegister(registerY);
-          var collision = this._display.Draw(x, y, sprite);
+          var sprite = _memory[_iRegister..(_iRegister + offset)];
+          var x = (int)ReadRegister(registerX);
+          var y = (int)ReadRegister(registerY);
+          var collision = _display.Draw(x, y, sprite);
 
-          this.LoadRegister(0xF, collision ? (byte)1 : (byte)0);
+          LoadRegister(0xF, collision ? (byte)1 : (byte)0);
           return new Next();
         }
 
       case SkipIfPressed(var register):
         {
-          return this._keyboard[this.ReadRegister(register)] ? new Skip() : new Next();
+          return _keyboard[ReadRegister(register)] ? new Skip() : new Next();
         }
 
       case LoadDelayTimer(var register):
         {
-          this.LoadRegister(register, this._delayRegister);
+          LoadRegister(register, _delayRegister);
           return new Next();
         }
 
       case WaitForKeyPress(var register):
         {
-          this._keyboardWaitKey = register;
+          _keyboardWaitKey = register;
           return new Next();
         }
 
       case SetDelayTimer(var register):
         {
-          this._delayRegister = this.ReadRegister(register);
+          _delayRegister = ReadRegister(register);
           return new Next();
         }
 
       case SetSoundTimer(var register):
         {
-          this._soundRegister = this.ReadRegister(register);
+          _soundRegister = ReadRegister(register);
           return new Next();
         }
 
       case AddToI(var register):
         {
-          this._iRegister = (ushort)this.ReadRegister(register);
+          _iRegister = ReadRegister(register);
           return new Next();
         }
 
       case LoadSprite(var register):
         {
-          this._iRegister = (ushort)(this.ReadRegister(register) * 5);
+          _iRegister = (ushort)(ReadRegister(register) * 5);
           return new Next();
         }
 
       case BCDRepresentation(var register):
         {
-          var address = this._iRegister;
-          var value = this.ReadRegister(register);
+          var address = _iRegister;
+          var value = ReadRegister(register);
 
-          this._memory[address] = (byte)(value / 100 % 10);
-          this._memory[address + 1] = (byte)(value / 10 % 10);
-          this._memory[address + 2] = (byte)(value % 10);
+          _memory[address] = (byte)(value / 100 % 10);
+          _memory[address + 1] = (byte)(value / 10 % 10);
+          _memory[address + 2] = (byte)(value % 10);
 
           return new Next();
         }
@@ -377,11 +377,11 @@ class Emulator
       case StoreRegisters(var register):
         {
           var limit = register + 1;
-          var address = this._iRegister;
+          var address = _iRegister;
 
           foreach (int offset in Enumerable.Range(0, limit))
           {
-            this._memory[address + offset] = this.ReadRegister((byte)offset);
+            _memory[address + offset] = ReadRegister((byte)offset);
           }
 
           return new Next();
@@ -391,11 +391,11 @@ class Emulator
       case LoadRegisters(var register):
         {
           var limit = register + 1;
-          var address = this._iRegister;
+          var address = _iRegister;
 
           foreach (int offset in Enumerable.Range(0, limit))
           {
-            this.LoadRegister((byte)offset, this._memory[address + offset]);
+            LoadRegister((byte)offset, _memory[address + offset]);
           }
 
           return new Next();
@@ -478,40 +478,40 @@ class Emulator
 
   private byte ReadRegister(byte index)
   {
-    return this._registers[index];
+    return _registers[index];
   }
 
   private void LoadRegister(byte index, byte value)
   {
-    this._registers[index] = value;
+    _registers[index] = value;
   }
 
   public void HandleKeyDown(int key)
   {
-    this._keyboard[key] = true;
+    _keyboard[key] = true;
 
-    if (this._keyboardWaitKey.HasValue)
+    if (_keyboardWaitKey.HasValue)
     {
-      this.LoadRegister(this._keyboardWaitKey.Value, (byte)key);
-      this._keyboardWaitKey = null;
+      LoadRegister(_keyboardWaitKey.Value, (byte)key);
+      _keyboardWaitKey = null;
     }
   }
 
   public void HandleKeyUp(int key)
   {
-    this._keyboard[key] = false;
+    _keyboard[key] = false;
   }
 
   public void DecrementTimers()
   {
-    if (this._delayRegister > 0)
+    if (_delayRegister > 0)
     {
-      this._delayRegister -= 1;
+      _delayRegister -= 1;
     }
 
-    if (this._soundRegister > 0)
+    if (_soundRegister > 0)
     {
-      this._soundRegister -= 1;
+      _soundRegister -= 1;
     }
   }
 }
@@ -527,7 +527,7 @@ class Display
   public bool Draw(int x, int y, byte[] chunk)
   {
     var collision = false;
-    this.BufferUpdate = true;
+    BufferUpdate = true;
 
     for (int blockOffset = 0; blockOffset < chunk.Length; blockOffset++)
     {
@@ -538,13 +538,13 @@ class Display
       {
         // Get buffer index from x and y coordinates.
         var positionX = (x + pixelOffset) % DisplayWidth;
-        var index = this.FromCoordinates(positionX, positionY);
+        var index = FromCoordinates(positionX, positionY);
 
-        var bufferPixel = this.Buffer[index];
+        var bufferPixel = Buffer[index];
         var spritePixel = (block >> (7 - pixelOffset)) & 1;
 
         var pixel = (byte)(bufferPixel ^ spritePixel);
-        this.Buffer[index] = pixel;
+        Buffer[index] = pixel;
 
         if (spritePixel == 1 && pixel == 0)
         {
@@ -558,11 +558,11 @@ class Display
 
   public void Clear()
   {
-    this.Buffer = new byte[DisplayWidth * DisplayHeight];
+    Buffer = new byte[DisplayWidth * DisplayHeight];
   }
 
-  private int FromCoordinates(int x, int y)
+  private static int FromCoordinates(int x, int y)
   {
-    return (x + DisplayWidth * y);
+    return x + DisplayWidth * y;
   }
 }
