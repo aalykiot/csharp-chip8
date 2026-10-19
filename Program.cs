@@ -26,10 +26,10 @@ class Program
             chip8.PerformCpuCycle(dt);
             chip8Time += dt;
 
-            if (chip8Time > 1 / 60)
+            if (chip8Time > 1.0 / 60.0)
             {
                 chip8.DecrementTimers();
-                chip8Time -= 1 / 60;
+                chip8Time -= 1.0 / 60.0;
             }
 
             Raylib.BeginDrawing();
