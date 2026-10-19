@@ -21,7 +21,7 @@ class Program
         while (!Raylib.WindowShouldClose())
         {
             // Update emulator's state based on Raylib's delta time.
-            float dt = Raylib.GetFrameTime() * 100;
+            float dt = Raylib.GetFrameTime();
 
             chip8.PerformCpuCycle(dt);
             chip8Time += dt;

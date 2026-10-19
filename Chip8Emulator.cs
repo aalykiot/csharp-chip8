@@ -294,7 +294,7 @@ class Chip8Emulator
 
             case Random(var register, var value):
                 {
-                    var randomNum = (byte)_random.Next(0, 255);
+                    var randomNum = (byte)_random.Next(0, 256);
                     LoadRegister(register, (byte)(randomNum & value));
                     return new Next();
                 }
@@ -313,6 +313,11 @@ class Chip8Emulator
             case SkipIfPressed(var register):
                 {
                     return _keyboard[ReadRegister(register)] ? new Skip() : new Next();
+                }
+
+            case SkipIfNotPressed(var register):
+                {
+                    return !_keyboard[ReadRegister(register)] ? new Skip() : new Next();
                 }
 
             case LoadDelayTimer(var register):
@@ -341,7 +346,7 @@ class Chip8Emulator
 
             case AddToI(var register):
                 {
-                    _iRegister = ReadRegister(register);
+                    _iRegister += ReadRegister(register);
                     return new Next();
                 }
 
@@ -398,7 +403,7 @@ class Chip8Emulator
     private static Instruction OpcodeToInstruction(ushort opcode)
     {
         // Split the given opcode into seprate digits.
-        var (d1, d2, d3, d4) = (
+        var (d0, d1, d2, d3) = (
             (byte)(opcode >> 12),
             (byte)(opcode >> 8 & 0x0F),
             (byte)(opcode >> 4 & 0x00F),
@@ -408,9 +413,9 @@ class Chip8Emulator
         var address = (ushort)(opcode & 0x0FFF);
         var value = (byte)(opcode & 0x00FF);
 
-        return d1 switch
+        return d0 switch
         {
-            0x0 => d4 switch
+            0x0 => d3 switch
             {
                 0x0 => new ClearDisplay(),
                 0xE => new Return(),
@@ -418,46 +423,46 @@ class Chip8Emulator
             },
             0x1 => new Jump(address),
             0x2 => new Call(address),
-            0x3 => new SkipIfEqualsByte(d2, value),
-            0x4 => new SkipIfNotEqualsByte(d2, value),
-            0x5 => new SkipIfEqual(d2, d3),
-            0x6 => new LoadByte(d2, value),
-            0x7 => new AddByte(d2, value),
-            0x8 => d4 switch
+            0x3 => new SkipIfEqualsByte(d1, value),
+            0x4 => new SkipIfNotEqualsByte(d1, value),
+            0x5 => new SkipIfEqual(d1, d2),
+            0x6 => new LoadByte(d1, value),
+            0x7 => new AddByte(d1, value),
+            0x8 => d3 switch
             {
-                0x0 => new Move(d2, d3),
-                0x1 => new Or(d2, d3),
-                0x2 => new And(d2, d3),
-                0x3 => new Xor(d2, d3),
-                0x4 => new Add(d2, d3),
-                0x5 => new Sub(d2, d3),
-                0x6 => new ShiftRight(d2),
-                0x7 => new ReverseSub(d2, d3),
-                0xE => new ShiftLeft(d2),
+                0x0 => new Move(d1, d2),
+                0x1 => new Or(d1, d2),
+                0x2 => new And(d1, d2),
+                0x3 => new Xor(d1, d2),
+                0x4 => new Add(d1, d2),
+                0x5 => new Sub(d1, d2),
+                0x6 => new ShiftRight(d1),
+                0x7 => new ReverseSub(d1, d2),
+                0xE => new ShiftLeft(d1),
                 _ => throw new Exception($"Unknown opcode: 0x{opcode:X4}"),
             },
-            0x9 => new SkipIfNotEqual(d2, d3),
+            0x9 => new SkipIfNotEqual(d1, d2),
             0xA => new LoadI(address),
             0xB => new JumpPlusZero(address),
-            0xC => new Random(d2, value),
-            0xD => new Draw(d2, d3, d4),
+            0xC => new Random(d1, value),
+            0xD => new Draw(d1, d2, d3),
             0xE => value switch
             {
-                0x9E => new SkipIfNotPressed(d2),
-                0xA1 => new SkipIfNotPressed(d2),
+                0x9E => new SkipIfPressed(d1),
+                0xA1 => new SkipIfNotPressed(d1),
                 _ => throw new Exception($"Unknown opcode: 0x{opcode:X4}"),
             },
             0xF => value switch
             {
-                0x07 => new LoadDelayTimer(d2),
-                0x0A => new WaitForKeyPress(d2),
-                0x15 => new SetDelayTimer(d2),
-                0x18 => new SetSoundTimer(d2),
-                0x01 => new AddToI(d2),
-                0x29 => new LoadSprite(d2),
-                0x33 => new BCDRepresentation(d2),
-                0x55 => new StoreRegisters(d2),
-                0x65 => new LoadRegisters(d2),
+                0x07 => new LoadDelayTimer(d1),
+                0x0A => new WaitForKeyPress(d1),
+                0x15 => new SetDelayTimer(d1),
+                0x18 => new SetSoundTimer(d1),
+                0x1E => new AddToI(d1),
+                0x29 => new LoadSprite(d1),
+                0x33 => new BCDRepresentation(d1),
+                0x55 => new StoreRegisters(d1),
+                0x65 => new LoadRegisters(d1),
                 _ => throw new Exception($"Unknown opcode: 0x{opcode:X4}"),
             },
             _ => throw new Exception($"Unknown opcode: 0x{opcode:X4}"),
