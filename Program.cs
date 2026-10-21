@@ -14,7 +14,7 @@ class Program
         var program = File.ReadAllBytes(args[0]);
 
         var chip8 = new Chip8Emulator(program);
-        var chip8Time = 0.0;
+        var chip8dt = 0.0;
 
         Raylib.InitWindow(640, 320, "Chip8 Emulator");
 
@@ -24,20 +24,20 @@ class Program
             float dt = Raylib.GetFrameTime();
 
             chip8.PerformCpuCycle(dt);
-            chip8Time += dt;
+            chip8dt += dt;
 
-            if (chip8Time > 1.0 / 60.0)
+            if (chip8dt > 1.0 / 60.0)
             {
                 chip8.DecrementTimers();
-                chip8Time -= 1.0 / 60.0;
+                chip8dt -= 1.0 / 60.0;
             }
 
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Color.Black);
 
-            foreach (int x in Enumerable.Range(0, Display.DisplayWidth))
+            for (int x = 0; x < Display.DisplayWidth; x++)
             {
-                foreach (int y in Enumerable.Range(0, Display.DisplayHeight))
+                for (int y = 0; y < Display.DisplayHeight; y++)
                 {
                     // Calculate the pixel's position in the display buffer and determine
                     // whether it should be drawn.

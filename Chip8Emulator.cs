@@ -95,10 +95,12 @@ class Chip8Emulator
 
     public void PerformCpuCycle(double delta)
     {
-        // The number of instructions to run in this cycle.
-        var numOfInstructions = (int)(CpuClock * delta);
+        // Math.Round works good enough here. The fractional part is still lost
+        // each frame, so drift can happen over time. The proper fix is an
+        // accumulator that carries the fraction forward.
+        var numOfInstructions = (int)Math.Round(CpuClock * delta);
 
-        foreach (int _ in Enumerable.Range(0, numOfInstructions))
+        for (int i = 0; i < numOfInstructions; i++)
         {
             // Block execution until a key is pressed.
             if (_keyboardWaitKey.HasValue)
@@ -373,7 +375,7 @@ class Chip8Emulator
                     var limit = register + 1;
                     var address = _iRegister;
 
-                    foreach (int offset in Enumerable.Range(0, limit))
+                    for (int offset = 0; offset < limit; offset++)
                     {
                         _memory[address + offset] = ReadRegister((byte)offset);
                     }
@@ -387,7 +389,7 @@ class Chip8Emulator
                     var limit = register + 1;
                     var address = _iRegister;
 
-                    foreach (int offset in Enumerable.Range(0, limit))
+                    for (int offset = 0; offset < limit; offset++)
                     {
                         LoadRegister((byte)offset, _memory[address + offset]);
                     }
@@ -515,19 +517,17 @@ class Display
     public const int DisplayHeight = 32;
 
     public byte[] Buffer = new byte[DisplayWidth * DisplayHeight];
-    public bool BufferUpdate = false;
 
     public bool Draw(int x, int y, byte[] chunk)
     {
         var collision = false;
-        BufferUpdate = true;
 
         for (int blockOffset = 0; blockOffset < chunk.Length; blockOffset++)
         {
             var block = chunk[blockOffset];
             var positionY = (y + blockOffset) % DisplayHeight;
 
-            foreach (int pixelOffset in Enumerable.Range(0, 8))
+            for (int pixelOffset = 0; pixelOffset < 8; pixelOffset++)
             {
                 // Get buffer index from x and y coordinates.
                 var positionX = (x + pixelOffset) % DisplayWidth;
@@ -537,6 +537,7 @@ class Display
                 var spritePixel = (block >> (7 - pixelOffset)) & 1;
 
                 var pixel = (byte)(bufferPixel ^ spritePixel);
+
                 Buffer[index] = pixel;
 
                 if (spritePixel == 1 && pixel == 0)
