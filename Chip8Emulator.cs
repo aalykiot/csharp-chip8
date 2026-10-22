@@ -65,7 +65,7 @@ class Chip8Emulator
         0xE0, 0x90, 0x90, 0x90, 0xE0,
         0xF0, 0x80, 0xF0, 0x80, 0xF0,
         0xF0, 0x80, 0xF0, 0x80, 0x80,
-  ];
+    ];
 
     private static readonly System.Random _random = new();
     public readonly Display Display = new();
@@ -87,8 +87,8 @@ class Chip8Emulator
 
     public Chip8Emulator(byte[] program)
     {
-        // Load built-in fonts and the program into the emulator's memory (this 
-        // can fail for some many reason but I'll ignore it for now).
+        // Load built-in fonts and the program into the emulator's memory (this
+        // can fail for so many reasons but I'll ignore it for now).
         FontMap.CopyTo(_memory, 0);
         program.CopyTo(_memory, ProgramMemoryOffset);
     }
@@ -481,18 +481,18 @@ class Chip8Emulator
         _registers[index] = value;
     }
 
-    public void HandleKeyDown(int key)
+    public void HandleKeyDown(byte key)
     {
         _keyboard[key] = true;
 
-        if (_keyboardWaitKey.HasValue)
+        if (_keyboardWaitKey is not null)
         {
-            LoadRegister(_keyboardWaitKey.Value, (byte)key);
+            LoadRegister(_keyboardWaitKey.Value, key);
             _keyboardWaitKey = null;
         }
     }
 
-    public void HandleKeyUp(int key)
+    public void HandleKeyUp(byte key)
     {
         _keyboard[key] = false;
     }
