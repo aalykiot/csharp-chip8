@@ -1,49 +1,6 @@
 namespace Chip8;
 
-abstract record Instruction;
-
-record ClearDisplay : Instruction;
-record Return : Instruction;
-record Jump(ushort Address) : Instruction;
-record Call(ushort Address) : Instruction;
-record SkipIfEqualsByte(byte Register, byte Value) : Instruction;
-record SkipIfNotEqualsByte(byte Register, byte Value) : Instruction;
-record SkipIfEqual(byte First, byte Second) : Instruction;
-record LoadByte(byte Destination, byte Value) : Instruction;
-record AddByte(byte Register, byte Value) : Instruction;
-record Move(byte Destination, byte Source) : Instruction;
-record Or(byte Destination, byte Source) : Instruction;
-record And(byte Destination, byte Source) : Instruction;
-record Xor(byte Destination, byte Source) : Instruction;
-record Add(byte Destination, byte Source) : Instruction;
-record Sub(byte Destination, byte Source) : Instruction;
-record ShiftRight(byte Register) : Instruction;
-record ReverseSub(byte Destination, byte Source) : Instruction;
-record ShiftLeft(byte Register) : Instruction;
-record SkipIfNotEqual(byte First, byte Second) : Instruction;
-record LoadI(ushort Address) : Instruction;
-record JumpPlusZero(ushort Address) : Instruction;
-record Random(byte Register, byte Mask) : Instruction;
-record Draw(byte RegisterX, byte RegisterY, byte Height) : Instruction;
-record SkipIfPressed(byte Register) : Instruction;
-record SkipIfNotPressed(byte Register) : Instruction;
-record LoadDelayTimer(byte Register) : Instruction;
-record WaitForKeyPress(byte Register) : Instruction;
-record SetDelayTimer(byte Register) : Instruction;
-record SetSoundTimer(byte Register) : Instruction;
-record AddToI(byte Register) : Instruction;
-record LoadSprite(byte Register) : Instruction;
-record BCDRepresentation(byte Register) : Instruction;
-record StoreRegisters(byte Register) : Instruction;
-record LoadRegisters(byte Register) : Instruction;
-
-abstract record ProgramCounterState;
-
-record Next : ProgramCounterState;
-record Skip : ProgramCounterState;
-record JumpTo(ushort Address) : ProgramCounterState;
-
-class Chip8Emulator
+internal class Chip8Emulator
 {
     private const int CpuClock = 600;
     private const int ProgramMemoryOffset = 0x200;
@@ -133,7 +90,7 @@ class Chip8Emulator
         }
     }
 
-    private ProgramCounterState RunInstruction(Instruction instruction)
+    private ProgramCounter RunInstruction(Instruction instruction)
     {
         // Execute instrcution and return the next program-counter.
         switch (instruction)
@@ -511,52 +468,3 @@ class Chip8Emulator
     }
 }
 
-class Display
-{
-    public const int DisplayWidth = 64;
-    public const int DisplayHeight = 32;
-
-    public byte[] Buffer = new byte[DisplayWidth * DisplayHeight];
-
-    public bool Draw(int x, int y, byte[] chunk)
-    {
-        var collision = false;
-
-        for (int blockOffset = 0; blockOffset < chunk.Length; blockOffset++)
-        {
-            var block = chunk[blockOffset];
-            var positionY = (y + blockOffset) % DisplayHeight;
-
-            for (int pixelOffset = 0; pixelOffset < 8; pixelOffset++)
-            {
-                // Get buffer index from x and y coordinates.
-                var positionX = (x + pixelOffset) % DisplayWidth;
-                var index = FromCoordinates(positionX, positionY);
-
-                var bufferPixel = Buffer[index];
-                var spritePixel = (block >> (7 - pixelOffset)) & 1;
-
-                var pixel = (byte)(bufferPixel ^ spritePixel);
-
-                Buffer[index] = pixel;
-
-                if (spritePixel == 1 && pixel == 0)
-                {
-                    collision = true;
-                }
-            }
-        }
-
-        return collision;
-    }
-
-    public void Clear()
-    {
-        Buffer = new byte[DisplayWidth * DisplayHeight];
-    }
-
-    private static int FromCoordinates(int x, int y)
-    {
-        return x + DisplayWidth * y;
-    }
-}
